@@ -1,0 +1,7 @@
+conda create -n HousePrices python=3.11
+conda activate HousePrices
+conda config --env --add channels conda-forge
+conda install numpy
+conda install scipy
+conda install matplotlib
+conda install pytorch torchvision -c pytorch
