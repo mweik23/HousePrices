@@ -15,7 +15,9 @@ def get_datapaths(basedir):
     processed_name = datadir + '/processed_data'
     return {'tvt': datadir_in, 'raw': datadir_raw, 'processed': processed_name}
 
-def get_data(data_paths, print_output=False, split='train'):
+def get_data(data_paths, print_output=False, print_status=True, split='train'):
+    if print_status:
+        print('loading data and info...')
     #create directory for processed data
     if not os.path.isdir(data_paths['processed']):
         os.system('mkdir ' + data_paths['processed'])
@@ -35,7 +37,9 @@ def get_data(data_paths, print_output=False, split='train'):
         print(data_in)
     return data_in, data_info
 
-def parse_info(data_info, print_output=False):
+def parse_info(data_info, print_output=False, print_status=True):
+    if print_status:
+        print('parsing data info file for data options...')
     x = re.findall('^\w+:.+?\n\s*\n', data_info, flags=re.MULTILINE)
     categs = [heading.split(':')[0] for heading in x]
     descripts = re.split('^\w+:.+?\n\s*\n', data_info, flags=re.MULTILINE)[1:]
@@ -49,7 +53,9 @@ def parse_info(data_info, print_output=False):
             print(f"{k}: {v}")
     return options_dict
 
-def change_types(data_in, options_dict, trans, print_output=False):
+def change_types(data_in, options_dict, trans, print_output=False, print_status=True):
+    if print_status:
+        print('resolving types in options vs. data...')
     #get types in options_dict to match the types in data_in
     for k in data_in.keys():
         if k in options_dict:
@@ -88,6 +94,8 @@ def change_types(data_in, options_dict, trans, print_output=False):
             if type(v)==list:
                 print('type of options: ', type(v[0]))
             print('type of actual: ', type(data_in[k].loc[0]))
+    if print_status:
+        print('converting data to float when possible...')
 
     float_type = float
     for k, v in data_in.items():
@@ -193,7 +201,9 @@ def cat_to_vec(init_df, mapping, new_cols=None, cat=None):
                     columns=new_cols)
     return vec_df
 
-def level_transform(data_in, options_dict, cols, print_output=False):
+def level_transform(data_in, options_dict, cols, print_output=False, print_status=True):
+    if print_status:
+        print('performing level transformations...')
     #transform columns in the to_scalar category
     mappings = create_mappings(cols, options_dict)
     for k in cols:
@@ -205,21 +215,23 @@ def level_transform(data_in, options_dict, cols, print_output=False):
         print(data_in.columns)
     return data_in
 
-def convert_to_str(data_in, cols):
+def convert_to_str(data_in, cols, print_output=False):
     for key in cols:
         if type(data_in[key][0])!=str:
-            print('converting column ' + key + ' to a str.')
+            if print_output:
+                print('converting column ' + key + ' to a str.')
             data_in[key] = data_in[key].apply(str)
     return data_in
 
-def create_new_cols(data_in, options_dict, transformations, dists_in=None):
+def create_new_cols(data_in, options_dict, transformations, dists_in=None, print_status=True):
     #initialize dfs and dists_out
     dfs={}
     dists_out = {}
     #convert dists_in to a dictionary if it isn't one
     if dists_in is None:
         dists_in = {}
-
+    if print_status:
+        print('performing one_hot_plus transformations...')
     # transform those in the one_hot_plus category
     for k, val in transformations['one_hot_plus'].items():
         if k in dists_in.keys():
@@ -232,11 +244,78 @@ def create_new_cols(data_in, options_dict, transformations, dists_in=None):
         if dist is not None:
             dists_out[k] = dist
         dfs[k] = df_new #add new dataframe to df_new
+    if print_status:
+        print('performing one_hot transformations...')
 
     # transform those in the one_hot category
     for k in transformations['one_hot']:
         dfs[k] = to_one_hot(data_in, k, options_dict[k])
 
+    if print_status:
+        print('performing case by case transformations...')
+
+    #handle case by case transformations
+    mappings = transformations['case_by_case']
+    for k, v in mappings.items():
+        if type(v)==str:
+            v = mappings[mappings[k]]
+        dfs[k] = cat_to_vec(data_in, v[0], new_cols=v[1], cat=k)
+    
+    #put in dist for Electrical category NA
+    df_new, dist = input_dist(dfs['Electrical'], 'NA', dist=None)
+    dists_out['Electrical'] = dist
+    dfs['Electrical'] = df_new
+
     return dfs, dists_out
 
-   
+def update_data(data_in, dfs, print_output=False, print_status=True):
+    if print_output:
+        print('data columns before removal: ')
+        print(data_in.columns)
+
+    data_in = data_in.drop(columns=list(dfs.keys())) #drop columns that I will replace shorty
+
+    if print_output:
+        print('data columns after removal: ')
+        print(data_in.columns)
+    if print_status:
+        print('checking for repeats in transformed columns...')
+    #check for repeat columns in dfs
+    cols_dict = {k: list(v.columns) for k, v in dfs.items()}
+    all_keys = list(itertools.chain(*[v for v in cols_dict.values()])) #compile all column names
+    freq = Counter(all_keys) #get frequency of column names
+    repeat_cols=[]
+
+    # store column names that repeat
+    for k, v in freq.items():
+        if v>=2:
+            if print_output:
+                print('column ', k, ' has repeats')
+            repeat_cols.append(k)
+
+    #check for keys with repeat columns and store those
+    repeat_keys = []
+    s_rcol = set(repeat_cols)
+    for k, v in cols_dict.items():
+        if any(item in s_rcol for item in v):
+            repeat_keys.append(k)
+    if print_status:
+        print('renaming new columns...')
+    #rename columns by adding some or all of the key name to the start of the column name
+    for k in dfs.keys():
+        #if the columns have repeats, use the whole key
+        if k in repeat_keys:
+            pref = k
+        #otherwise use first 3 charracters
+        else:
+            pref = k[:3]
+        rename_dict = {name: pref + '_' + name for name in cols_dict[k]} #construct rename dictionary
+        dfs[k] = dfs[k].rename(columns=rename_dict) #rename columns
+    if print_status:
+        print('adding new columns...')
+    
+    #add columns to data_in
+    for v in dfs.values():
+        data_in = pd.concat([data_in, v], axis=1)
+    
+    return data_in
