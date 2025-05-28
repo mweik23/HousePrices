@@ -317,5 +317,62 @@ def update_data(data_in, dfs, print_output=False, print_status=True):
     #add columns to data_in
     for v in dfs.values():
         data_in = pd.concat([data_in, v], axis=1)
-    
+    #drop Id
+    data_in = data_in.drop(columns='Id')
     return data_in
+
+def regularize(data_in, loc=None, scale=None):
+    if loc is None:
+        loc = np.mean(data_in, axis=0)
+    if scale is None:
+        scale = np.std(data_in, axis=0)
+    return (data_in-loc)/scale, (loc, scale)
+
+if __name__=='__main__':
+    #define paths and names
+    data_paths = get_datapaths('HousePrices')
+    #load data
+    data_in, data_info = get_data(data_paths, split='train')
+    #get possible options for each category
+    options_dict = parse_info(data_info)
+    #different methods of transforming data
+    scalar_inputs = ['LotFrontage', 'LotArea', 'OverallQual', 'OverallCond', 'YearBuilt', 'YearRemodAdd', '1stFlrSF', '2ndFlrSF', 'LowQualFinSF',\
+                    'GrLivArea', 'BsmtFullBath', 'BsmtHalfBath', 'FullBath', 'HalfBath', 'BedroomAbvGr', 'TotRmsAbvGrd', 'GarageYrBlt', 'GarageCars', 'GarageArea',\
+                    'WoodDeckSF', 'OpenPorchSF', 'EnclosedPorch', '3SsnPorch', 'ScreenPorch', 'PoolArea', 'YrSold', 'BsmtFinSF1', 'BsmtFinSF2', 'BsmtUnfSF', 'TotalBsmtSF',\
+                        'KitchenAbvGr', 'Fireplaces']
+    to_scalar = ['LotShape', 'LandSlope', 'ExterQual', 'ExterCond', 'BsmtQual', 'BsmtCond', 'BsmtExposure', 'CentralAir', 'Functional',\
+                'GarageFinish', 'GarageQual', 'GarageCond', 'PavedDrive', 'PoolQC', 'Fence', 'KitchenQual', 'FireplaceQu', 'HeatingQC']
+    one_hot = ['MSSubClass', 'MSZoning', 'Street', 'LotConfig', 'Neighborhood', 'RoofStyle', 'RoofMatl', 'Exterior1st', 'Exterior2nd', 'Foundation',\
+                'SaleType', 'SaleCondition']
+    one_hot_plus = {'Alley': {'NA': 0}, 'LandContour': {'Lvl': 0}, 'MasVnrType': {'None': 0, 'NA': 'dist', 'weight': 'MasVnrArea'}, 'GarageType':{'NA': 0},\
+                    'MiscFeature': {'NA': 0, 'weight': 'MiscVal'}, 'Heating': {'weight': 'HeatingQC'}}
+    case_by_case =  {'Utilities': [{'AllPub':[1, 1, 1], 'NoSewr':[0, 1, 1], 'NoSeWa':[0, 0, 1], 'ELO':[0, 0, 0]}, ['Sew', 'Wat', 'Gas']],
+            'Condition1': [{'Artery':[1, 0, 0, 0], 'Feedr':[0.5, 0, 0, 0], 'Norm': [0, 0, 0, 0], 'RRNn': [0, 0.5, 0, 0],
+                            'RRAn':[0, 1, 0, 0], 'PosN':[0, 0, 0, .5], 'PosA': [0, 0, 0, 1], 'RRNe':[0, 0, 0.5, 0], 'RRAe': [0, 0, 1, 0]},
+                            ['Road', 'NS_rail', 'EW_rail', 'Positive']],
+                'Condition2': 'Condition1',
+                'BldgType': [{'1Fam':[0, 0], '2fmCon':[1, 0], 'Duplex': [0.5, 0], 'TwnhsE':[0, 0.5], 'TwnhsI': [0, 1], 'Twnhs':[0, 1]},
+                            ['2fam', 'Twnhs']],
+                'HouseStyle': [{'1Story': [0, 0, 0], '1.5Fin': [0.4, 0, 0], '1.5Unf': [0.2, 0, 0], '2Story': [0.6, 0, 0], '2.5Fin':[1, 0, 0],
+                                '2.5Unf':[0.8, 0, 0], 'SFoyer': [0, 1, 0], 'SLvl': [0, 0, 1]}, ['Stories', 'SFoyer', 'SLvl']],
+                'BsmtFinType1': [{'NA': [0], 'Unf': [0], 'LwQ':[0.2], 'Rec':[0.4], 'BLQ':[0.6], 'ALQ':[0.8], 'GLQ':[1]},
+                                ['BsmtFiQual1']],
+                'BsmtFinType2': [{'NA': [0], 'Unf': [0], 'LwQ':[0.2], 'Rec':[0.4], 'BLQ':[0.6], 'ALQ':[0.8], 'GLQ':[1]},
+                                ['BsmtFiQual2']],
+                'Electrical': [{'SBrkr':[1, 0, 0], 'FuseA':[2/3, 0, 0], 'FuseF':[1/3, 0, 0], 'FuseP':[0, 0, 0], 'Mix':[0, 1, 0], 'NA':[0, 0, 1]},
+                            ['BreakWire_rate', 'Mixed', 'NA']]
+                            }
+    transformations = {'scalar_inputs': scalar_inputs, 'to_scalar': to_scalar, 'one_hot': one_hot, 'one_hot_plus': one_hot_plus, 'case_by_case': case_by_case}
+    
+    #make types consistent between options and data
+    data_in, options_dict = change_types(data_in, options_dict, transformations)
+    #convert categorical data to scalar using a level transformation
+    data_in = level_transform(data_in, options_dict, transformations['to_scalar'])
+    #convert one hot and one hot plus data options to str so that columns will be labeled by string after transform.
+    data_in = convert_to_str(data_in, transformations['one_hot'] + list(transformations['one_hot_plus'].keys()))
+    #convert one hot and one hot plus
+    dfs, dists = create_new_cols(data_in, options_dict, transformations)
+    #update data table
+    data_in = update_data(data_in, dfs)
+    #regularize the data and extract the mean and variance
+    data_in, stats = regularize(data_in)
