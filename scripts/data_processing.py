@@ -5,6 +5,7 @@ import re
 import sys
 from collections import Counter
 import itertools
+import transformations as tr
 
 #define paths and names
 def get_datapaths(basedir):
@@ -53,7 +54,7 @@ def parse_info(data_info, print_output=False, print_status=True):
             print(f"{k}: {v}")
     return options_dict
 
-def change_types(data_in, options_dict, trans, print_output=False, print_status=True):
+def change_types(data_in, options_dict, trans, make_float={}, split='train', print_output=False, print_status=True):
     if print_status:
         print('resolving types in options vs. data...')
     #get types in options_dict to match the types in data_in
@@ -65,25 +66,27 @@ def change_types(data_in, options_dict, trans, print_output=False, print_status=
             #gather the unique elements in data_in[k], the set of all values of the variable with heading k
             actual_opts = list(set(data_in[k].tolist()))
             actual_type = type(actual_opts[0])
-            #if the type of the variable is something other than str, need to convert options_dict variable options to the correct type
-            if options_dict[k] == []:  #this represents a free numeric entry
-                options_dict[k] = {'variable_type': actual_type}  #what type is this entry in data_in to start?
-                #keep working here
-            else:
-                #if the type of a column in data_in is something other than a string, 
-                #the options of the corresponding key in options_dict will have to be converted 
-                if actual_type != str: 
-                    options_dict[k] = [actual_type(item) for item in options_dict[k]]
+            if split == 'train':
+                #if the type of the variable is something other than str, need to convert options_dict variable options to the correct type
+                if options_dict[k] == []:  #this represents a free numeric entry
+                    options_dict[k] = {'variable_type': actual_type}  #what type is this entry in data_in to start?
+                    #keep working here
+                else:
+                    #if the type of a column in data_in is something other than a string, 
+                    #the options of the corresponding key in options_dict will have to be converted 
+                    if actual_type != str: 
+                        options_dict[k] = [actual_type(item) for item in options_dict[k]]
 
-                #check if there exist any items in data_in that do not appear in opitons_dict and raise an error if so
-                check_options = [item in options_dict[k] for item in actual_opts]
-                if not all(check_options):
-                    #print(check_options)
-                    false_idx = -1
-                    num_false = check_options.count(False)
-                    for n in range(num_false):
-                        false_idx = check_options.index(False, false_idx+1)
-                        print(f'ERROR: value {actual_opts[false_idx]} for key {k} does not exist in options_dict')           
+                    #check if there exist any items in data_in that do not appear in opitons_dict and raise an error if so
+                    check_options = [item in options_dict[k] for item in actual_opts]
+                    if not all(check_options):
+                        #print(check_options)
+                        false_idx = -1
+                        num_false = check_options.count(False)
+                        for n in range(num_false):
+                            false_idx = check_options.index(False, false_idx+1)
+                            print(f'ERROR: value {actual_opts[false_idx]} for key {k} does not exist in options_dict')   
+            ##############        
         #if this key does not exist in options_dict and it is not a special key, then raise an error
         elif k !='SalePrice' and k!= 'Id':
             print(f'ERROR: key {k} in the data is not in options_dict')
@@ -98,20 +101,30 @@ def change_types(data_in, options_dict, trans, print_output=False, print_status=
         print('converting data to float when possible...')
 
     float_type = float
+    if len(make_float)==0:
+        store=True
+    else:
+        store=False
+
     for k, v in data_in.items():
+        
         all_numeric=False
         free_var=False
         if k in options_dict:
-            #print(k)
-            #check if all options are numeric 
-            if type(options_dict[k])==list: #if options are explicitly listed and they are strings then check if they are strings of numeric values
-                if type(options_dict[k][0])==str:
-                    numeric = [item.replace('.', '').replace('-', '').replace(' ', '').isnumeric() for item in options_dict[k]] #remove special characters
-                    all_numeric = all(numeric)
-            elif type(options_dict[k])==dict: #if options are described by a dictionary then the the data type is a free form number
-                if options_dict[k]['variable_type']==str: #if that number is currently in the form of a string then it must be converted
-                    all_numeric=True
-                    free_var=True
+            if store:
+                #check if all options are numeric 
+                if type(options_dict[k])==list: #if options are explicitly listed and they are strings then check if they are strings of numeric values
+                    if type(options_dict[k][0])==str:
+                        numeric = [item.replace('.', '').replace('-', '').replace(' ', '').isnumeric() for item in options_dict[k]] #remove special characters
+                        all_numeric = all(numeric)
+                elif type(options_dict[k])==dict: #if options are described by a dictionary then the the data type is a free form number
+                    if options_dict[k]['variable_type']==str: #if that number is currently in the form of a string then it must be converted
+                        all_numeric=True
+                        free_var=True
+                make_float[k] = all_numeric
+            else:
+                all_numeric = make_float[k]
+
             if all_numeric and k != 'MSSubClass':
                 #print(options_dict[k])
                 #before converting, replace 'NA' with -1
@@ -119,11 +132,12 @@ def change_types(data_in, options_dict, trans, print_output=False, print_status=
                 data_in[k] = data_in[k].astype(float_type) #convert data
                 #print('type: ', type(data_in[k].loc[1]))
 
-                #convert options dict as well
-                if free_var:
-                    options_dict[k]['variable_type']=float_type
-                else:
-                    options_dict[k] = [float_type(item) for item in options_dict[k]]
+                if store:
+                    #convert options dict as well
+                    if free_var:
+                        options_dict[k]['variable_type']=float_type
+                    else:
+                        options_dict[k] = [float_type(item) for item in options_dict[k]]
     if print_output:
         print('Final result for options_dict:')
         for k, v in options_dict.items():
@@ -261,10 +275,17 @@ def create_new_cols(data_in, options_dict, transformations, dists_in=None, print
             v = mappings[mappings[k]]
         dfs[k] = cat_to_vec(data_in, v[0], new_cols=v[1], cat=k)
     
+    #special condition for Electrical
+    k='Electrical'
+    if k in dists_in.keys():
+        dist = dists_in[k] # if there is a input dist for k then we will use that
+    else:
+        dist = None # otherwise we will set the dist to None and caluclate 
+                    # a new dist if needed (inside to_one_hot_plus())
     #put in dist for Electrical category NA
-    df_new, dist = input_dist(dfs['Electrical'], 'NA', dist=None)
-    dists_out['Electrical'] = dist
-    dfs['Electrical'] = df_new
+    df_new, dist = input_dist(dfs[k], 'NA', dist=dist)
+    dists_out[k] = dist
+    dfs[k] = df_new
 
     return dfs, dists_out
 
@@ -331,48 +352,21 @@ def regularize(data_in, loc=None, scale=None):
 if __name__=='__main__':
     #define paths and names
     data_paths = get_datapaths('HousePrices')
-    #load data
-    data_in, data_info = get_data(data_paths, split='train')
-    #get possible options for each category
-    options_dict = parse_info(data_info)
-    #different methods of transforming data
-    scalar_inputs = ['LotFrontage', 'LotArea', 'OverallQual', 'OverallCond', 'YearBuilt', 'YearRemodAdd', '1stFlrSF', '2ndFlrSF', 'LowQualFinSF',\
-                    'GrLivArea', 'BsmtFullBath', 'BsmtHalfBath', 'FullBath', 'HalfBath', 'BedroomAbvGr', 'TotRmsAbvGrd', 'GarageYrBlt', 'GarageCars', 'GarageArea',\
-                    'WoodDeckSF', 'OpenPorchSF', 'EnclosedPorch', '3SsnPorch', 'ScreenPorch', 'PoolArea', 'YrSold', 'BsmtFinSF1', 'BsmtFinSF2', 'BsmtUnfSF', 'TotalBsmtSF',\
-                        'KitchenAbvGr', 'Fireplaces']
-    to_scalar = ['LotShape', 'LandSlope', 'ExterQual', 'ExterCond', 'BsmtQual', 'BsmtCond', 'BsmtExposure', 'CentralAir', 'Functional',\
-                'GarageFinish', 'GarageQual', 'GarageCond', 'PavedDrive', 'PoolQC', 'Fence', 'KitchenQual', 'FireplaceQu', 'HeatingQC']
-    one_hot = ['MSSubClass', 'MSZoning', 'Street', 'LotConfig', 'Neighborhood', 'RoofStyle', 'RoofMatl', 'Exterior1st', 'Exterior2nd', 'Foundation',\
-                'SaleType', 'SaleCondition']
-    one_hot_plus = {'Alley': {'NA': 0}, 'LandContour': {'Lvl': 0}, 'MasVnrType': {'None': 0, 'NA': 'dist', 'weight': 'MasVnrArea'}, 'GarageType':{'NA': 0},\
-                    'MiscFeature': {'NA': 0, 'weight': 'MiscVal'}, 'Heating': {'weight': 'HeatingQC'}}
-    case_by_case =  {'Utilities': [{'AllPub':[1, 1, 1], 'NoSewr':[0, 1, 1], 'NoSeWa':[0, 0, 1], 'ELO':[0, 0, 0]}, ['Sew', 'Wat', 'Gas']],
-            'Condition1': [{'Artery':[1, 0, 0, 0], 'Feedr':[0.5, 0, 0, 0], 'Norm': [0, 0, 0, 0], 'RRNn': [0, 0.5, 0, 0],
-                            'RRAn':[0, 1, 0, 0], 'PosN':[0, 0, 0, .5], 'PosA': [0, 0, 0, 1], 'RRNe':[0, 0, 0.5, 0], 'RRAe': [0, 0, 1, 0]},
-                            ['Road', 'NS_rail', 'EW_rail', 'Positive']],
-                'Condition2': 'Condition1',
-                'BldgType': [{'1Fam':[0, 0], '2fmCon':[1, 0], 'Duplex': [0.5, 0], 'TwnhsE':[0, 0.5], 'TwnhsI': [0, 1], 'Twnhs':[0, 1]},
-                            ['2fam', 'Twnhs']],
-                'HouseStyle': [{'1Story': [0, 0, 0], '1.5Fin': [0.4, 0, 0], '1.5Unf': [0.2, 0, 0], '2Story': [0.6, 0, 0], '2.5Fin':[1, 0, 0],
-                                '2.5Unf':[0.8, 0, 0], 'SFoyer': [0, 1, 0], 'SLvl': [0, 0, 1]}, ['Stories', 'SFoyer', 'SLvl']],
-                'BsmtFinType1': [{'NA': [0], 'Unf': [0], 'LwQ':[0.2], 'Rec':[0.4], 'BLQ':[0.6], 'ALQ':[0.8], 'GLQ':[1]},
-                                ['BsmtFiQual1']],
-                'BsmtFinType2': [{'NA': [0], 'Unf': [0], 'LwQ':[0.2], 'Rec':[0.4], 'BLQ':[0.6], 'ALQ':[0.8], 'GLQ':[1]},
-                                ['BsmtFiQual2']],
-                'Electrical': [{'SBrkr':[1, 0, 0], 'FuseA':[2/3, 0, 0], 'FuseF':[1/3, 0, 0], 'FuseP':[0, 0, 0], 'Mix':[0, 1, 0], 'NA':[0, 0, 1]},
-                            ['BreakWire_rate', 'Mixed', 'NA']]
-                            }
-    transformations = {'scalar_inputs': scalar_inputs, 'to_scalar': to_scalar, 'one_hot': one_hot, 'one_hot_plus': one_hot_plus, 'case_by_case': case_by_case}
-    
-    #make types consistent between options and data
-    data_in, options_dict = change_types(data_in, options_dict, transformations)
-    #convert categorical data to scalar using a level transformation
-    data_in = level_transform(data_in, options_dict, transformations['to_scalar'])
-    #convert one hot and one hot plus data options to str so that columns will be labeled by string after transform.
-    data_in = convert_to_str(data_in, transformations['one_hot'] + list(transformations['one_hot_plus'].keys()))
-    #convert one hot and one hot plus
-    dfs, dists = create_new_cols(data_in, options_dict, transformations)
-    #update data table
-    data_in = update_data(data_in, dfs)
-    #regularize the data and extract the mean and variance
-    data_in, stats = regularize(data_in)
+    splits = ['train', 'val', 'test']
+    for split in splits:
+        #load data
+        data_in, data_info = get_data(data_paths, split=split)
+        #get possible options for each category
+        options_dict = parse_info(data_info)
+        #make types consistent between options and data
+        data_in, options_dict = change_types(data_in, options_dict, tr.transformations)
+        #convert categorical data to scalar using a level transformation
+        data_in = level_transform(data_in, options_dict, tr.transformations['to_scalar'])
+        #convert one hot and one hot plus data options to str so that columns will be labeled by string after transform.
+        data_in = convert_to_str(data_in, tr.transformations['one_hot'] + list(tr.transformations['one_hot_plus'].keys()))
+        #convert one hot and one hot plus
+        dfs, dists = create_new_cols(data_in, options_dict, tr.transformations)
+        #update data table
+        data_in = update_data(data_in, dfs)
+        #regularize the data and extract the mean and variance
+        data_in, stats = regularize(data_in)
