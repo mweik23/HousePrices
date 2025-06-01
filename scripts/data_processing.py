@@ -6,6 +6,7 @@ import sys
 from collections import Counter
 import itertools
 import transformations as tr
+from copy import deepcopy
 
 #define paths and names
 def get_datapaths(basedir):
@@ -16,18 +17,16 @@ def get_datapaths(basedir):
     processed_name = datadir + '/processed_data'
     return {'tvt': datadir_in, 'raw': datadir_raw, 'processed': processed_name}
 
-def get_data(data_paths, print_output=False, print_status=True, split='train'):
+def get_data(data_paths, print_output=False, print_status=True):
     if print_status:
         print('loading data and info...')
     #create directory for processed data
     if not os.path.isdir(data_paths['processed']):
         os.system('mkdir ' + data_paths['processed'])
-    if split=='train':
-        #load raw data and info
-        with open(data_paths['raw'] + '/data_description.txt', 'r') as file:
-            data_info = file.read()
-    else:
-        data_info=None
+    
+    #load raw data and info
+    with open(data_paths['raw'] + '/data_description.txt', 'r') as file:
+        data_info = file.read()
     ## this will need to be done for train test and val
     data_in = pd.read_csv(data_paths['tvt'] + '/' + split + '.csv', keep_default_na=False, na_values=['_'])
     if print_output:
@@ -54,9 +53,12 @@ def parse_info(data_info, print_output=False, print_status=True):
             print(f"{k}: {v}")
     return options_dict
 
-def change_types(data_in, options_dict, trans, make_float={}, split='train', print_output=False, print_status=True):
+def change_types(data_in, options_dict, trans, missing_opts={}, print_output=False, print_status=True):
+    options_dict = deepcopy(options_dict)
+    data_in = data_in.copy()
     if print_status:
         print('resolving types in options vs. data...')
+    print('missing options start: ', missing_opts)
     #get types in options_dict to match the types in data_in
     for k in data_in.keys():
         if k in options_dict:
@@ -66,27 +68,26 @@ def change_types(data_in, options_dict, trans, make_float={}, split='train', pri
             #gather the unique elements in data_in[k], the set of all values of the variable with heading k
             actual_opts = list(set(data_in[k].tolist()))
             actual_type = type(actual_opts[0])
-            if split == 'train':
-                #if the type of the variable is something other than str, need to convert options_dict variable options to the correct type
-                if options_dict[k] == []:  #this represents a free numeric entry
-                    options_dict[k] = {'variable_type': actual_type}  #what type is this entry in data_in to start?
-                    #keep working here
-                else:
-                    #if the type of a column in data_in is something other than a string, 
-                    #the options of the corresponding key in options_dict will have to be converted 
-                    if actual_type != str: 
-                        options_dict[k] = [actual_type(item) for item in options_dict[k]]
+            #if the type of the variable is something other than str, need to convert options_dict variable options to the correct type
+            if options_dict[k] == []:  #this represents a free numeric entry
+                options_dict[k] = {'variable_type': actual_type}  #what type is this entry in data_in to start?
+                #keep working here
+            else:
+                #if the type of a column in data_in is something other than a string, 
+                #the options of the corresponding key in options_dict will have to be converted 
+                if actual_type != str: 
+                    options_dict[k] = [actual_type(item) for item in options_dict[k]]
 
-                    #check if there exist any items in data_in that do not appear in opitons_dict and raise an error if so
-                    check_options = [item in options_dict[k] for item in actual_opts]
-                    if not all(check_options):
-                        #print(check_options)
-                        false_idx = -1
-                        num_false = check_options.count(False)
-                        for n in range(num_false):
-                            false_idx = check_options.index(False, false_idx+1)
-                            print(f'ERROR: value {actual_opts[false_idx]} for key {k} does not exist in options_dict')   
-            ##############        
+                #check if there exist any items in data_in that do not appear in opitons_dict and raise an error if so
+                check_options = [item in options_dict[k] for item in actual_opts]
+                if not all(check_options):
+                    #print(check_options)
+                    false_idx = -1
+                    num_false = check_options.count(False)
+                    for n in range(num_false):
+                        false_idx = check_options.index(False, false_idx+1)
+                        print(f'ERROR: value {actual_opts[false_idx]} for key {k} does not exist in options_dict')
+                        missing_opts[k] = actual_opts[false_idx]   
         #if this key does not exist in options_dict and it is not a special key, then raise an error
         elif k !='SalePrice' and k!= 'Id':
             print(f'ERROR: key {k} in the data is not in options_dict')
@@ -101,29 +102,20 @@ def change_types(data_in, options_dict, trans, make_float={}, split='train', pri
         print('converting data to float when possible...')
 
     float_type = float
-    if len(make_float)==0:
-        store=True
-    else:
-        store=False
-
     for k, v in data_in.items():
-        
         all_numeric=False
         free_var=False
         if k in options_dict:
-            if store:
-                #check if all options are numeric 
-                if type(options_dict[k])==list: #if options are explicitly listed and they are strings then check if they are strings of numeric values
-                    if type(options_dict[k][0])==str:
-                        numeric = [item.replace('.', '').replace('-', '').replace(' ', '').isnumeric() for item in options_dict[k]] #remove special characters
-                        all_numeric = all(numeric)
-                elif type(options_dict[k])==dict: #if options are described by a dictionary then the the data type is a free form number
-                    if options_dict[k]['variable_type']==str: #if that number is currently in the form of a string then it must be converted
-                        all_numeric=True
-                        free_var=True
-                make_float[k] = all_numeric
-            else:
-                all_numeric = make_float[k]
+            #check if all options are numeric 
+            if type(options_dict[k])==list: #if options are explicitly listed and they are strings then check if they are strings of numeric values
+                if type(options_dict[k][0])==str:
+                    numeric = [item.replace('.', '').replace('-', '').replace(' ', '').isnumeric() for item in options_dict[k]] #remove special characters
+                    all_numeric = all(numeric)
+            elif type(options_dict[k])==dict: #if options are described by a dictionary then the the data type is a free form number
+                if options_dict[k]['variable_type']==str: #if that number is currently in the form of a string then it must be converted
+                    all_numeric=True
+                    free_var=True
+            make_float[k] = all_numeric
 
             if all_numeric and k != 'MSSubClass':
                 #print(options_dict[k])
@@ -131,13 +123,12 @@ def change_types(data_in, options_dict, trans, make_float={}, split='train', pri
                 data_in[k] = data_in[k].replace('NA', -1)
                 data_in[k] = data_in[k].astype(float_type) #convert data
                 #print('type: ', type(data_in[k].loc[1]))
-
-                if store:
-                    #convert options dict as well
-                    if free_var:
-                        options_dict[k]['variable_type']=float_type
-                    else:
-                        options_dict[k] = [float_type(item) for item in options_dict[k]]
+            
+                #convert options dict as well
+                if free_var:
+                    options_dict[k]['variable_type']=float_type
+                else:
+                    options_dict[k] = [float_type(item) for item in options_dict[k]]
     if print_output:
         print('Final result for options_dict:')
         for k, v in options_dict.items():
@@ -146,7 +137,7 @@ def change_types(data_in, options_dict, trans, make_float={}, split='train', pri
                 print('type of options: ', type(v[0]))
             print('type of actual: ', type(data_in[k].loc[0]))
 
-    return data_in, options_dict
+    return data_in, options_dict, missing_opts
 
 def add_to_series(old_series, pos, new_label, val):
     new_index  = old_series.index.insert(pos, new_label)
@@ -273,6 +264,8 @@ def create_new_cols(data_in, options_dict, transformations, dists_in=None, print
     for k, v in mappings.items():
         if type(v)==str:
             v = mappings[mappings[k]]
+        #print('v = ', v)
+        #print('k = ', k)
         dfs[k] = cat_to_vec(data_in, v[0], new_cols=v[1], cat=k)
     
     #special condition for Electrical
@@ -353,20 +346,61 @@ if __name__=='__main__':
     #define paths and names
     data_paths = get_datapaths('HousePrices')
     splits = ['train', 'val', 'test']
+    make_float = {}
+    dists=None
+    stats=(None, None)
+    datasets = []
+    datasets_final = []
+    missing_opts = {}
     for split in splits:
+        print('loading and parsing dataset: ', split)
+        dfs={}
         #load data
-        data_in, data_info = get_data(data_paths, split=split)
+        data_in, data_info = get_data(data_paths)
+        datasets.append(data_in)
         #get possible options for each category
-        options_dict = parse_info(data_info)
-        #make types consistent between options and data
-        data_in, options_dict = change_types(data_in, options_dict, tr.transformations)
+        if split=='train':
+            options_dict_init = parse_info(data_info)
+
+    #make types consistent between options and data
+    i=0
+    while len(missing_opts)>0 or i==0:
+        mk = list(missing_opts.keys())
+        for k in mk:
+            options_dict_init[k].append(missing_opts.pop(k))
+            print('missing options: ', missing_opts)
+            print('options:', options_dict[k])
+        datasets_out=[]
+        for dataset in datasets:
+            data_out, options_dict, missing_opts = change_types(dataset, options_dict_init, tr.transformations, missing_opts=missing_opts)
+            datasets_out.append(data_out)
+        if len(missing_opts)>0:
+            print('attempt ', i, ' results in missing options: ', missing_opts, '. Will try again.')
+        else:
+            print('attempt ', i, ' results in no missing options. Resolving types complete.')
+        i+=1
+    print(len(datasets_out))
+    for i, dataset in enumerate(datasets_out):
+        print('process ', splits[i], ' dataset')
         #convert categorical data to scalar using a level transformation
-        data_in = level_transform(data_in, options_dict, tr.transformations['to_scalar'])
+        dataset = level_transform(dataset, options_dict, tr.transformations['to_scalar'])
         #convert one hot and one hot plus data options to str so that columns will be labeled by string after transform.
-        data_in = convert_to_str(data_in, tr.transformations['one_hot'] + list(tr.transformations['one_hot_plus'].keys()))
+        dataset = convert_to_str(dataset, tr.transformations['one_hot'] + list(tr.transformations['one_hot_plus'].keys()))
         #convert one hot and one hot plus
-        dfs, dists = create_new_cols(data_in, options_dict, tr.transformations)
+        dfs, dists = create_new_cols(dataset, options_dict, tr.transformations, dists_in=dists)
         #update data table
-        data_in = update_data(data_in, dfs)
+        dataset = update_data(dataset, dfs)
         #regularize the data and extract the mean and variance
-        data_in, stats = regularize(data_in)
+        dataset, stats = regularize(dataset, loc=stats[0], scale=stats[1])
+        print(splits[i], ' dataset: ')
+        print(dataset)
+
+    print('in test but not train')
+    for name in datasets_final[2].columns:
+        if not name in datasets_final[0].columns:
+            print(name)
+    
+    print('in train but not test')
+    for name in datasets_final[0].columns:
+        if not name in datasets_final[2].columns:
+            print(name)
