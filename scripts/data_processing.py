@@ -335,11 +335,14 @@ def update_data(data_in, dfs, print_output=False, print_status=True):
     data_in = data_in.drop(columns='Id')
     return data_in
 
-def regularize(data_in, loc=None, scale=None):
+def regularize(data_in, loc=None, scale=None, target=None):
     if loc is None:
         loc = np.mean(data_in, axis=0)
     if scale is None:
         scale = np.std(data_in, axis=0)
+    if target is not None:
+        loc[target]=0
+        scale[target]=1
     return (data_in-loc)/scale, (loc, scale)
 
 if __name__=='__main__':
@@ -391,16 +394,6 @@ if __name__=='__main__':
         #update data table
         dataset = update_data(dataset, dfs)
         #regularize the data and extract the mean and variance
-        dataset, stats = regularize(dataset, loc=stats[0], scale=stats[1])
-        print(splits[i], ' dataset: ')
-        print(dataset)
-
-    print('in test but not train')
-    for name in datasets_final[2].columns:
-        if not name in datasets_final[0].columns:
-            print(name)
-    
-    print('in train but not test')
-    for name in datasets_final[0].columns:
-        if not name in datasets_final[2].columns:
-            print(name)
+        dataset, stats = regularize(dataset, loc=stats[0], scale=stats[1], target='SalePrice')
+        print('saving ', splits[i], ' dataset...')
+        dataset.to_parquet(data_paths['processed'] + '/' + splits[i] + '.parquet', engine="pyarrow", index=False)
