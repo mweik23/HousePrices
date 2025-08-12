@@ -17,7 +17,7 @@ def get_datapaths(basedir):
     processed_name = datadir + '/processed_data'
     return {'tvt': datadir_in, 'raw': datadir_raw, 'processed': processed_name}
 
-def get_data(data_paths, print_output=False, print_status=True):
+def get_data(data_paths, print_output=False, print_status=True, split='train'):
     if print_status:
         print('loading data and info...')
     #create directory for processed data
@@ -44,7 +44,7 @@ def parse_info(data_info, print_output=False, print_status=True):
     categs = [heading.split(':')[0] for heading in x]
     descripts = re.split('^\w+:.+?\n\s*\n', data_info, flags=re.MULTILINE)[1:]
     options = [re.findall('^\s+([\w|\.|\&| |\(\|\)]+)\t', des, flags=re.MULTILINE) for des in descripts]
-    options_dict = {cat:opt for cat, opt in zip(categs, options)}
+    options_dict = {cat:[o for o in opt if o.strip()] for cat, opt in zip(categs, options)}
     if print_output:
         print('number of descriptions: ', len(descripts))
         print('numbers of categories: ', len(categs))
@@ -62,23 +62,28 @@ def change_types(data_in, options_dict, trans, missing_opts={}, print_output=Fal
     #get types in options_dict to match the types in data_in
     for k in data_in.keys():
         if k in options_dict:
+            #Step 1: covert column to str if it is categorical
             if k in trans['one_hot']+list(trans['one_hot_plus'].keys()):
+                #only checking first element of column: MAKE MORE ROBUST
                 if type(data_in[k][0])!=str:
                     data_in[k] = data_in[k].apply(str)
             #gather the unique elements in data_in[k], the set of all values of the variable with heading k
             actual_opts = list(set(data_in[k].tolist()))
             actual_type = type(actual_opts[0])
             #if the type of the variable is something other than str, need to convert options_dict variable options to the correct type
+
+            #Step 2: change options_dict to contain the correct type
             if options_dict[k] == []:  #this represents a free numeric entry
                 options_dict[k] = {'variable_type': actual_type}  #what type is this entry in data_in to start?
-                #keep working here
             else:
                 #if the type of a column in data_in is something other than a string, 
                 #the options of the corresponding key in options_dict will have to be converted 
+                #only checking first element of column: MAKE MORE ROBUST
                 if actual_type != str: 
                     options_dict[k] = [actual_type(item) for item in options_dict[k]]
 
                 #check if there exist any items in data_in that do not appear in opitons_dict and raise an error if so
+                #Step 3: check if options in data are all listed in options_dict. Any that are not will be added to missing_opts
                 check_options = [item in options_dict[k] for item in actual_opts]
                 if not all(check_options):
                     #print(check_options)
@@ -106,7 +111,8 @@ def change_types(data_in, options_dict, trans, missing_opts={}, print_output=Fal
         all_numeric=False
         free_var=False
         if k in options_dict:
-            #check if all options are numeric 
+            #check if all options are numeric
+            #Step 4: check for options that should be numeric but are not. If this is the case make_float[k]=True
             if type(options_dict[k])==list: #if options are explicitly listed and they are strings then check if they are strings of numeric values
                 if type(options_dict[k][0])==str:
                     numeric = [item.replace('.', '').replace('-', '').replace(' ', '').isnumeric() for item in options_dict[k]] #remove special characters
@@ -116,7 +122,8 @@ def change_types(data_in, options_dict, trans, missing_opts={}, print_output=Fal
                     all_numeric=True
                     free_var=True
             make_float[k] = all_numeric
-
+        else:
+            #Step 5: convert columns to float except for MSSubClass
             if all_numeric and k != 'MSSubClass':
                 #print(options_dict[k])
                 #before converting, replace 'NA' with -1
@@ -359,7 +366,7 @@ if __name__=='__main__':
         print('loading and parsing dataset: ', split)
         dfs={}
         #load data
-        data_in, data_info = get_data(data_paths)
+        data_in, data_info = get_data(data_paths, split=split)
         datasets.append(data_in)
         #get possible options for each category
         if split=='train':

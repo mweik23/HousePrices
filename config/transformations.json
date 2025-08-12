@@ -1,0 +1,527 @@
+{
+    "scalar_inputs": [
+        "LotFrontage",
+        "LotArea",
+        "YearBuilt",
+        "YearRemodAdd",
+        "1stFlrSF",
+        "2ndFlrSF",
+        "LowQualFinSF",
+        "GrLivArea",
+        "BsmtFullBath",
+        "BsmtHalfBath",
+        "FullBath",
+        "HalfBath",
+        "BedroomAbvGr",
+        "TotRmsAbvGrd",
+        "GarageCars",
+        "GarageArea",
+        "WoodDeckSF",
+        "OpenPorchSF",
+        "EnclosedPorch",
+        "3SsnPorch",
+        "ScreenPorch",
+        "PoolArea",
+        "YrSold",
+        "BsmtFinSF1",
+        "BsmtFinSF2",
+        "BsmtUnfSF",
+        "TotalBsmtSF",
+        "KitchenAbvGr",
+        "Fireplaces"
+    ],
+    "ordinal": [
+        "LotShape",
+        "LandSlope",
+        "ExterQual",
+        "ExterCond",
+        "BsmtQual",
+        "BsmtCond",
+        "BsmtExposure",
+        "CentralAir",
+        "Functional",
+        "GarageFinish",
+        "GarageQual",
+        "GarageCond",
+        "PavedDrive",
+        "PoolQC",
+        "Fence",
+        "KitchenQual",
+        "FireplaceQu",
+        "HeatingQC",
+        "OverallQual",
+        "OverallCond"
+    ],
+    "onehot_plus": {
+        "MSSubClass": {},
+        "MSZoning": {},
+        "Street": {},
+        "LotConfig": {},
+        "Neighborhood": {},
+        "RoofStyle": {},
+        "RoofMatl": {},
+        "Foundation": {},
+        "SaleCondition": {},
+        "MasVnrType": {
+            "ignore": "None",
+            "get_mean": "NA",
+            "use_amp": "MasVnrArea"
+        },
+        "MiscFeature": {
+            "ignore": "NA",
+            "use_amp": "MiscVal"
+        },
+        "Heating": {
+            "use_amp": "HeatingQC"
+        },
+        "GarageType": {
+            "ignore": "NA",
+            "use_amp": "GarageYrBlt"
+        },
+        "Alley": {
+            "ignore": "NA"
+        },
+        "LandContour": {
+            "ignore": "Lvl"
+        },
+        "Exterior1st": {
+            "ignore": "NA"
+        },
+        "Exterior2nd": {
+            "ignore": "NA"
+        },
+        "SaleType": {
+            "ignore": "NA"
+        }
+    },
+    "case_by_case": {
+        "Utilities": {
+            "transformations": {
+                "AllPub": [
+                    1,
+                    1,
+                    1,
+                    0
+                ],
+                "NoSewr": [
+                    0,
+                    1,
+                    1,
+                    0
+                ],
+                "NoSeWa": [
+                    0,
+                    0,
+                    1,
+                    0
+                ],
+                "ELO": [
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "NA": [
+                    0,
+                    0,
+                    0,
+                    1
+                ]
+            },
+            "new_cols": [
+                "Sew",
+                "Wat",
+                "Gas",
+                "Other"
+            ]
+        },
+        "Condition1": {
+            "transformations": {
+                "Artery": [
+                    1,
+                    0,
+                    0,
+                    0
+                ],
+                "Feedr": [
+                    0.5,
+                    0,
+                    0,
+                    0
+                ],
+                "Norm": [
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "RRNn": [
+                    0,
+                    0.5,
+                    0,
+                    0
+                ],
+                "RRAn": [
+                    0,
+                    1,
+                    0,
+                    0
+                ],
+                "PosN": [
+                    0,
+                    0,
+                    0,
+                    0.5
+                ],
+                "PosA": [
+                    0,
+                    0,
+                    0,
+                    1
+                ],
+                "RRNe": [
+                    0,
+                    0,
+                    0.5,
+                    0
+                ],
+                "RRAe": [
+                    0,
+                    0,
+                    1,
+                    0
+                ]
+            },
+            "new_cols": [
+                "Road",
+                "NS_rail",
+                "EW_rail",
+                "Positive"
+            ]
+        },
+        "Condition2": {
+            "transformations": {
+                "Artery": [
+                    1,
+                    0,
+                    0,
+                    0
+                ],
+                "Feedr": [
+                    0.5,
+                    0,
+                    0,
+                    0
+                ],
+                "Norm": [
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "RRNn": [
+                    0,
+                    0.5,
+                    0,
+                    0
+                ],
+                "RRAn": [
+                    0,
+                    1,
+                    0,
+                    0
+                ],
+                "PosN": [
+                    0,
+                    0,
+                    0,
+                    0.5
+                ],
+                "PosA": [
+                    0,
+                    0,
+                    0,
+                    1
+                ],
+                "RRNe": [
+                    0,
+                    0,
+                    0.5,
+                    0
+                ],
+                "RRAe": [
+                    0,
+                    0,
+                    1,
+                    0
+                ]
+            },
+            "new_cols": [
+                "Road",
+                "NS_rail",
+                "EW_rail",
+                "Positive"
+            ]
+        },
+        "BldgType": {
+            "transformations": {
+                "1Fam": [
+                    0,
+                    0
+                ],
+                "2fmCon": [
+                    1,
+                    0
+                ],
+                "Duplex": [
+                    0.5,
+                    0
+                ],
+                "TwnhsE": [
+                    0,
+                    0.5
+                ],
+                "TwnhsI": [
+                    0,
+                    1
+                ],
+                "Twnhs": [
+                    0,
+                    1
+                ]
+            },
+            "new_cols": [
+                "2fam",
+                "Twnhs"
+            ]
+        },
+        "HouseStyle": {
+            "transformations": {
+                "1Story": [
+                    0,
+                    0,
+                    0
+                ],
+                "1.5Fin": [
+                    0.4,
+                    0,
+                    0
+                ],
+                "1.5Unf": [
+                    0.2,
+                    0,
+                    0
+                ],
+                "2Story": [
+                    0.6,
+                    0,
+                    0
+                ],
+                "2.5Fin": [
+                    1,
+                    0,
+                    0
+                ],
+                "2.5Unf": [
+                    0.8,
+                    0,
+                    0
+                ],
+                "SFoyer": [
+                    0,
+                    1,
+                    0
+                ],
+                "SLvl": [
+                    0,
+                    0,
+                    1
+                ]
+            },
+            "new_cols": [
+                "Stories",
+                "SFoyer",
+                "SLvl"
+            ]
+        },
+        "BsmtFinType1": {
+            "transformations": {
+                "NA": [
+                    0
+                ],
+                "Unf": [
+                    0
+                ],
+                "LwQ": [
+                    0.2
+                ],
+                "Rec": [
+                    0.4
+                ],
+                "BLQ": [
+                    0.6
+                ],
+                "ALQ": [
+                    0.8
+                ],
+                "GLQ": [
+                    1
+                ]
+            },
+            "new_cols": [
+                "BsmtFiQual1"
+            ]
+        },
+        "BsmtFinType2": {
+            "transformations": {
+                "NA": [
+                    0
+                ],
+                "Unf": [
+                    0
+                ],
+                "LwQ": [
+                    0.2
+                ],
+                "Rec": [
+                    0.4
+                ],
+                "BLQ": [
+                    0.6
+                ],
+                "ALQ": [
+                    0.8
+                ],
+                "GLQ": [
+                    1
+                ]
+            },
+            "new_cols": [
+                "BsmtFiQual2"
+            ]
+        },
+        "Electrical": {
+            "transformations": {
+                "SBrkr": [
+                    1,
+                    0,
+                    0
+                ],
+                "FuseA": [
+                    0.6666666666666666,
+                    0,
+                    0
+                ],
+                "FuseF": [
+                    0.3333333333333333,
+                    0,
+                    0
+                ],
+                "FuseP": [
+                    0,
+                    0,
+                    0
+                ],
+                "Mix": [
+                    0,
+                    1,
+                    0
+                ],
+                "NA": [
+                    0,
+                    0,
+                    1
+                ]
+            },
+            "new_cols": [
+                "BreakWire_rate",
+                "Mixed",
+                "NA"
+            ]
+        },
+        "MSZoning": {
+            "transformations": {
+                "A": [
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "C (all)": [
+                    0,
+                    1,
+                    0,
+                    0,
+                    0,
+                    0
+                ],
+                "FV": [
+                    0,
+                    0,
+                    1,
+                    0,
+                    0,
+                    0
+                ],
+                "I": [
+                    0,
+                    0,
+                    0,
+                    1,
+                    0,
+                    0
+                ],
+                "RH": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0.25,
+                    0
+                ],
+                "RL": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0.75,
+                    0
+                ],
+                "RP": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    1,
+                    0
+                ],
+                "RM": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0.5,
+                    0
+                ],
+                "NA": [
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    1
+                ]
+            },
+            "new_cols": [
+                "A",
+                "C (all)",
+                "FV",
+                "I",
+                "R",
+                "NA"
+            ]
+        }
+    }
+}
