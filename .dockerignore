@@ -1,0 +1,15 @@
+# Ignore Python cache
+__pycache__/
+*.pyc
+
+# Ignore local data folder
+data/
+
+# Ignore logs
+logs/
+
+# Ignore predictions
+predictions/
+
+# Ignore Git
+.git
