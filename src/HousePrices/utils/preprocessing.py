@@ -79,9 +79,9 @@ class OneHotAmplitude(BaseEstimator, TransformerMixin):
         return np.concatenate(output, axis=1)
 
 class OneHotPlus(BaseEstimator, TransformerMixin):
-    def __init__(self, directions: dict, options_dict: dict):
+    def __init__(self, directions: dict, features_dict: dict):
         self.directions = directions
-        self.options_dict = options_dict
+        self.features_dict = features_dict
         self.unknown_means_ = {}
         self.encoder = {}
         self.categories_ = {}
@@ -100,16 +100,16 @@ class OneHotPlus(BaseEstimator, TransformerMixin):
             #drop ignore value if present
             mask_entries = []
             if 'ignore' in direction.keys():
-                if direction['ignore'] not in self.options_dict[col]:
+                if direction['ignore'] not in self.features_dict[col]:
                     print(f"Warning: {direction['ignore']} not found in options for {col}. This column was set to be ignored anyway for OneHotEncoder.")
                 else:
-                    self.options_dict[col].remove(direction['ignore'])
+                    self.features_dict[col].remove(direction['ignore'])
                 mask_entries.append(direction['ignore'])
             if 'get_mean' in direction.keys():
-                if direction['get_mean'] not in self.options_dict[col]:
+                if direction['get_mean'] not in self.features_dict[col]:
                     print(f"Warning: {direction['get_mean']} not found in options for {col}. This column was set to be ignored anyway for OneHotEncoder.")
                 else:
-                    self.options_dict[col].remove(direction['get_mean'])
+                    self.features_dict[col].remove(direction['get_mean'])
                 mask_entries.append(direction['get_mean'])
             mask = ~X[col].isin(mask_entries)
             # build the encoder for each category
@@ -117,7 +117,7 @@ class OneHotPlus(BaseEstimator, TransformerMixin):
                 encoder = OneHotEncoder(sparse_output=False, handle_unknown='ignore')
             except TypeError:
                 encoder = OneHotEncoder(sparse=False, handle_unknown='ignore')
-            encoder.fit(pd.DataFrame(self.options_dict[col], columns=[col]))
+            encoder.fit(pd.DataFrame(self.features_dict[col], columns=[col]))
             self.categories_[col] = encoder.get_feature_names_out([col])
             encoded = encoder.transform(X[[col]][mask])
             self.encoder[col] = encoder

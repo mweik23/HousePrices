@@ -1,0 +1,12 @@
+{
+  "model_name": "catboostregressor",
+  "iterations": 1000,
+  "learning_rate": 0.1,
+  "depth": 6,
+  "l2_leaf_reg": 3,
+  "bagging_temperature": 1.0,
+  "random_seed": 42,
+  "task_type": "CPU",
+  "od_type": "Iter",
+  "od_wait": 50
+}
