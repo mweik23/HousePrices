@@ -1,6 +1,7 @@
 data/*
 logs/*
+predictions/*
 
 !data/.gitkeep
 !logs/.gitkeep
-
+!predictions/.gitkeep

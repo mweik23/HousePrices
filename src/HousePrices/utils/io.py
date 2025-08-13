@@ -9,12 +9,12 @@ import numpy as np
 def setup_expdir(expdir, overwrite=False):
     if not expdir.exists():
         print(f"Creating experiment directory: {expdir}")
-        os.makedirs(expdir)
+        expdir.mkdir(parents=True, exist_ok=True)
     else:
         if overwrite:
             print(f"Experiment directory {expdir} already exists. Overwriting.")
             os.system(f'rm -r {expdir}')
-            os.makedirs(expdir)
+            expdir.mkdir(parents=True, exist_ok=True)
         else:
             print(f"Experiment directory {expdir} already exists. Not overwriting.")
             raise FileExistsError(f"Experiment directory {expdir} already exists. Set 'overwrite' to True to overwrite.")
@@ -23,29 +23,28 @@ def setup_expdir(expdir, overwrite=False):
 def get_paths(project_root, datadir=None):
     if datadir is None:
         datadir = project_root / 'data'
-    datadir_in = datadir / 'tvt'
-    datadir_raw = datadir / 'raw'
-    processed_name = datadir / 'processed_data'
     config_dir = project_root / 'config'
-    return {'tvt': str(datadir_in), 'raw': str(datadir_raw), 'processed': str(processed_name), 'config': str(config_dir)}
+    return datadir, config_dir
 
 #TODO: clean up directory specification
-def get_data(data_paths, print_output=False, print_status=True, split='all'):
+def get_data(data_path, load_info=True, print_output=False, print_status=True, split='all'):
     if print_status:
         print('loading data and info...')
-    #create directory for processed data
-    if not os.path.isdir(data_paths['processed']):
-        os.system('mkdir ' + data_paths['processed'])
     
     #load raw data and info
-    with open(data_paths['raw'] + '/data_description.txt', 'r') as file:
-        data_info = file.read()
+    if load_info:
+        with open(data_path / 'raw/data_description.txt', 'r') as file:
+            data_info = file.read()
+    else:
+        data_info = None
 
     # if split is 'all', load all data. Train val split will be done on the outside
     if split == 'all':
-        data_in = pd.read_csv(data_paths['raw'] + '/train.csv', keep_default_na=False, na_values=['_'])
+        data_in = pd.read_csv(data_path / 'raw/train.csv', keep_default_na=False, na_values=['_'])
+    elif split == 'test':
+        data_in = pd.read_csv(data_path, keep_default_na=False, na_values=['_'])
     else:
-        data_in = pd.read_csv(data_paths['tvt'] + '/' + split + '.csv', keep_default_na=False, na_values=['_'])
+        data_in = pd.read_csv(data_path /  f'tvt/{split}.csv', keep_default_na=False, na_values=['_'])
 
     if print_output:
         if data_info is not None:
@@ -53,8 +52,12 @@ def get_data(data_paths, print_output=False, print_status=True, split='all'):
             print(data_info)
         print('raw data: ')
         print(data_in)
-    data_in = data_in.drop(columns=['Id'])
-    return data_in, data_info
+    
+    if 'Id' in data_in.columns:
+        Ids = data_in.pop('Id')
+    else:
+        Ids = None
+    return Ids, data_in, data_info
 
 def parse_info(data_info, print_output=False, print_status=True):
     if print_status:
@@ -151,7 +154,7 @@ def load_json(file_path, print_output=False):
         if print_output:
             print(f"Loaded JSON from {file_path}:")
             print(json.dumps(data, indent=2))
-        return data
+    return data
 
 def save_json(data, file_path):
     """Save a dictionary as a JSON file."""

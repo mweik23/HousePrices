@@ -1,0 +1,12 @@
+{
+  "exp_name": "my_experiment",
+  "pre_split": false,
+  "val_frac": 0.3,
+  "tv_split_seed": 97,
+  "logdir": "/Users/mitchweikert/Documents/random_projects/HousePrices/logs",
+  "overwrite": false,
+  "model_params": "{}",
+  "model_config": "model_config.json",
+  "config_path": "/Users/mitchweikert/Documents/random_projects/HousePrices/config",
+  "data_path": "/Users/mitchweikert/Documents/random_projects/HousePrices/data"
+}

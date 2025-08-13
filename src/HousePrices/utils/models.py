@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from typing import Literal, Dict, Any
 from catboost import CatBoostRegressor
 
-ModelName = Literal["catboost_regressor"]
+ModelName = Literal["catboostregressor"]
 
 @dataclass
 class ModelConfig:
@@ -10,7 +10,7 @@ class ModelConfig:
     params: Dict[str, Any]  # hyperparams for the chosen model
 
 def build_model(cfg: ModelConfig):
-    if cfg.name == "catboost_regressor":
+    if cfg.name == "catboostregressor":
         return CatBoostRegressor(**cfg.params)
     raise ValueError(f"Unknown model: {cfg.name}")
 
@@ -31,3 +31,4 @@ model = CatBoostRegressor(
     od_wait=50               # stop after 50 rounds without improvement on val
 )
 '''
+
