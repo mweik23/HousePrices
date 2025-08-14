@@ -3,7 +3,6 @@ logs/*
 predictions/*
 venv/
 .DS_Store
-.git
 .python-version
 .venv
 
