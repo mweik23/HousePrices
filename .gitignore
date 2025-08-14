@@ -1,6 +1,7 @@
 data/*
 logs/*
 predictions/*
+venv/
 
 !data/.gitkeep
 !logs/.gitkeep
