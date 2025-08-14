@@ -5,13 +5,13 @@ FROM python:3.9
 WORKDIR /code
 
 # add requirements file to image
-COPY ./requirements.txt /code/requirements.txt
+COPY ./requirements-app.txt /code/requirements.txt
 
 # install python libraries
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
 
 # add python code
-COPY . code/
+COPY . /code/
 
 # specify default commands
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]

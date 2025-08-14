@@ -46,10 +46,12 @@ def info():
 
 @app.post("/predict/upload")
 async def predict_from_csv(file: UploadFile = File(...)):
+
     start_time = time.perf_counter()  # high-resolution timer
     if file.content_type not in ("text/csv", "application/vnd.ms-excel"):
         raise HTTPException(status_code=400, detail="Please upload a CSV file.")
     in_filename = file.filename
+
     # Read CSV into pandas (without writing to disk)
     content = await file.read()
     try:
@@ -66,11 +68,13 @@ async def predict_from_csv(file: UploadFile = File(...)):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Prediction error: {e}")
 
+    # create dataframe of predictions
     df_preds = pd.DataFrame({
         Ids.name: Ids,
         out_var: preds
     })
 
+    # Convert dataframe to CSV in memory
     buf = io.StringIO()
     df_preds.to_csv(buf, index=False)
     buf.seek(0)
@@ -81,3 +85,4 @@ async def predict_from_csv(file: UploadFile = File(...)):
     out_filename = ''.join(in_filename.split('.')[:-1])+f"_predictions.csv"
     headers = {"Content-Disposition": f'attachment; filename="{out_filename}"'}
     return StreamingResponse(iter([buf.getvalue()]), media_type="text/csv", headers=headers)
+
