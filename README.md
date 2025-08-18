@@ -49,6 +49,18 @@ Access the app at: http://localhost:8000
 docker build -t house-prices-app .
 
 # Run the Docker container
-docker run -d -p 8000:8000 house-prices-app
+docker run -rm -p 8000:8000 house-prices-app
 ```
 Access the app at: http://localhost:8000
+
+## API Documentation
+The API documentation is automatically generated and can be accessed at:
+- Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
+
+API Endpoints
+- `GET /` -> health check
+- `GET /info/` -> get application info
+- `POST /predict/` -> input data and get predictions
+
+## Command-Line Usage
+Coming soon
