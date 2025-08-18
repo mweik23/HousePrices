@@ -41,7 +41,7 @@ def health_check():
 
 @app.get("/info")
 def info():
-    return {'name': 'HousePrices', 'description': "Search API for House Prices."}
+    return {'name': 'HousePrices', 'description': "API for predicting house prices."}
 
 
 @app.post("/predict/upload")
