@@ -2,7 +2,7 @@
 An application that predicts house prices based on a set of input features.
 
 ## Overview
-This project is a FastAPI-based web application that provides an API for predicting house prices. It is containerized with Docker for easy deployment and reproducibility. Disclaimer: this is an educational project. This tool is not going to be very effective at predicting house prices that are on the market now because it is based on a machine learning model that was trained using data from several cities around the years of 2007-2008.
+This project is a FastAPI-based web application that provides an API for predicting house prices. It is containerized with Docker for easy deployment and reproducibility. Disclaimer: this is an educational project. This tool is not going to be very effective at predicting the prices of houses that are on the market now because it is based on a machine learning model that was trained using data from several cities around the years of 2007-2008.
 
 ## Features
 
