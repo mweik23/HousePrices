@@ -35,7 +35,7 @@ def main(argv=None):
         model_path = PROJECT_ROOT / 'logs' / args.train_name / 'pipeline.joblib'
     else:
         # Otherwise, use the provided model path
-        model_path = Path(args.model_path)
+        model_path = PROJECT_ROOT / args.model_path
     
     #create output directory if it doesn't exist
     output_dir = Path(PROJECT_ROOT / f'{args.output_dir}__{run_time}')

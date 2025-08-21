@@ -41,6 +41,7 @@ def build_parser():
     parser.add_argument('--model_config', type=str, default='model_config.json', help='Path to model configuration file (optional)')
     parser.add_argument('--config_path', type=str, default=DEFAULT_CONFIG_PATH, help='Path to configuration directory')
     parser.add_argument('--data_path', type=str, default=DEFAULT_DATADIR, help='Path to data directory')
+    parser.add_argument('--preproc_config_name', type=str, default='transformations.json', help='Path to transformations configuration file (optional)')
     return parser
 
 def main(argv=None):
@@ -66,6 +67,7 @@ def main(argv=None):
     # Prepare the data
     X_train, y_train, X_val, y_val, transformations, _ = prepare_data(data_path,
                                                                       config_path,
+                                                                      config_name=args.preproc_config_name,
                                                                       target_name='SalePrice',
                                                                       pre_split=args.pre_split,
                                                                       val_frac=args.val_frac,
