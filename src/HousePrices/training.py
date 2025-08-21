@@ -15,7 +15,7 @@ sys.path.append(str(project_root / "src"))
 from HousePrices.utils import io
 from HousePrices.utils.models import ModelConfig
 
-def prepare_data(data_path, config_path, target_name='', pre_split=False, val_frac=0.2, tv_split_seed=42):
+def prepare_data(data_path, config_path, config_name='transformations.json', target_name='', pre_split=False, val_frac=0.2, tv_split_seed=42):
     if pre_split:
         print("Using pre-split data. Train, val split with be ignored")
         # load training data
@@ -39,7 +39,7 @@ def prepare_data(data_path, config_path, target_name='', pre_split=False, val_fr
     features_dict, raw_numeric, categorical = io.parse_info(data_info, print_output=False)
 
     # load transformations config file
-    transformations_path = config_path / 'transformations.json'
+    transformations_path = config_path / config_name
     transformations = io.load_json(transformations_path, print_output=False)
 
     # modify transformations to include more feature information

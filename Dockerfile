@@ -5,7 +5,7 @@ FROM python:3.9
 WORKDIR /code
 
 # add requirements file to image
-COPY ./requirements-app.txt /code/requirements.txt
+COPY ./requirements.txt /code/requirements.txt
 
 # install python libraries
 RUN pip install --no-cache-dir --upgrade -r /code/requirements.txt
