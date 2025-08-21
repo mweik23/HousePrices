@@ -1,4 +1,6 @@
-data/*
+data/raw/*
+data/processed_data/*
+data/tvt/*
 logs/*
 predictions/*
 venv/
@@ -6,6 +8,8 @@ venv/
 .python-version
 .venv
 
-!data/.gitkeep
+!data/raw/.gitkeep
+!data/processed_data/.gitkeep
+!data/tvt/.gitkeep
 !logs/.gitkeep
 !predictions/.gitkeep

@@ -31,6 +31,10 @@ def get_data(data_path, load_info=True, print_output=False, print_status=True, s
     if print_status:
         print('loading data and info...')
     
+    if split in ['all', 'test']:
+        dataset_path = data_path / 'raw'
+    else:
+        dataset_path = data_path / 'tvt'
     #load raw data and info
     if load_info:
         with open(data_path / 'raw/data_description.txt', 'r') as file:
@@ -40,11 +44,11 @@ def get_data(data_path, load_info=True, print_output=False, print_status=True, s
 
     # if split is 'all', load all data. Train val split will be done on the outside
     if split == 'all':
-        data_in = pd.read_csv(data_path / 'raw/train.csv', keep_default_na=False, na_values=['_'])
+        data_in = pd.read_csv(dataset_path / 'train.csv', keep_default_na=False, na_values=['_'])
     elif split == 'test':
-        data_in = pd.read_csv(data_path, keep_default_na=False, na_values=['_'])
+        data_in = pd.read_csv(dataset_path / f'{split}.csv', keep_default_na=False, na_values=['_'])
     else:
-        data_in = pd.read_csv(data_path /  f'tvt/{split}.csv', keep_default_na=False, na_values=['_'])
+        data_in = pd.read_csv(dataset_path /  f'{split}.csv', keep_default_na=False, na_values=['_'])
 
     if print_output:
         if data_info is not None:

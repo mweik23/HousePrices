@@ -13,7 +13,7 @@ from HousePrices.utils import io
 def build_parser():
     parser = ArgumentParser(description="Train a regression model on House Prices dataset.")
     parser.add_argument('--model_path', type=str, default="logs/my_experiment/pipeline.joblib", help='Path to the trained model')
-    parser.add_argument('--data_path', type=str, default="data/raw/test.csv", help='Path to the new data for prediction')
+    parser.add_argument('--data_path', type=str, default="data/", help='Path to the new data for prediction')
     #TODO: update default output directory
     parser.add_argument('--output_dir', type=str, default="predictions/run", help='Directory to save predictions')
     parser.add_argument('--base_dir', type=str, default=str(PROJECT_ROOT), help='Base directory of the project')
